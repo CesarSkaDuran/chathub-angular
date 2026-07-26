@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
 import { Router } from '@angular/router'
 import { tap } from 'rxjs'
-import { environment } from '../../../environments/environment'
+import { AppConfigService } from './app-config.service'
 
 export interface User {
   id: number
@@ -16,10 +16,10 @@ export interface User {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private api = environment.apiUrl
+  private get api() { return this.cfg.apiUrl }
   currentUser = signal<User | null>(null)
 
-  constructor(private http: HttpClient, private router: Router) {
+  constructor(private http: HttpClient, private router: Router, private cfg: AppConfigService) {
     const stored = localStorage.getItem('chathub_user')
     if (stored) this.currentUser.set(JSON.parse(stored))
   }
@@ -44,4 +44,5 @@ export class AuthService {
   getToken() { return localStorage.getItem('chathub_token') }
   isLoggedIn() { return !!this.getToken() }
   isSupervisor() { return ['admin', 'supervisor'].includes(this.currentUser()?.role ?? '') }
+  isAdmin() { return this.currentUser()?.role === 'admin' }
 }

@@ -1,0 +1,78 @@
+<div class="agents-page">
+  <div class="page-header">
+    <h2>Agentes</h2>
+    <button class="btn btn-primary" (click)="showCreateForm()">
+      <span class="material-symbols-rounded">person_add</span> Nuevo agente
+    </button>
+  </div>
+
+  @if (showForm) {
+    <div class="form-card fade-in">
+      <h3>{{ editingId ? 'Editar agente' : 'Nuevo agente' }}</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nombre</label>
+          <input class="input" [(ngModel)]="form.name" placeholder="Juan Pérez">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input class="input" [(ngModel)]="form.email" type="email" placeholder="juan@empresa.com">
+        </div>
+        <div class="field">
+          <label>Contraseña</label>
+          <input class="input" [(ngModel)]="form.password" type="password" [placeholder]="editingId ? 'Dejar vacío para mantener' : '••••••••'">
+        </div>
+        <div class="field">
+          <label>Rol</label>
+          <select class="input" [(ngModel)]="form.role">
+            <option value="agent">Agente</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sucursal ID</label>
+          <input class="input" [(ngModel)]="form.branch_id" type="number" placeholder="1">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="save()" [disabled]="creating()">
+          {{ creating() ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Crear agente') }}
+        </button>
+        <button class="btn btn-ghost" (click)="cancel()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+  <div class="agents-table">
+    <div class="table-header">
+      <span>Agente</span>
+      <span>Rol</span>
+      <span>Sucursal</span>
+      <span>Estado</span>
+      <span>Acciones</span>
+    </div>
+    @for (ag of agents(); track ag.id) {
+      <div class="table-row">
+        <div class="ag-info">
+          <div class="avatar sm">{{ initials(ag.name) }}</div>
+          <div>
+            <div class="ag-name">{{ ag.name }}</div>
+            <div class="ag-email text-muted text-xs">{{ ag.email }}</div>
+          </div>
+        </div>
+        <span class="role-badge" [class]="ag.role">{{ roleLabel(ag.role) }}</span>
+        <span class="text-small text-muted">{{ ag.branch_name }}</span>
+        <span class="active-dot" [class.active]="ag.is_active"></span>
+        <div class="row-actions">
+          <button class="btn-icon" (click)="edit(ag)" title="Editar">
+            <span class="material-symbols-rounded">edit</span>
+          </button>
+          <button class="btn-icon btn-danger" (click)="remove(ag.id)" title="Eliminar">
+            <span class="material-symbols-rounded">delete</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>

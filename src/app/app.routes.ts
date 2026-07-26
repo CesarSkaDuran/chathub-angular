@@ -8,34 +8,34 @@ export const routes: Routes = [
   },
   {
     path: 'chat',
-    loadComponent: () => import('./features/chat/chat-shell.component').then(m => m.ChatShellComponent),
+    loadComponent: () => import('./features/components/chat/chat-shell.component').then(m => m.ChatShellComponent),
     canActivate: [authGuard],
     children: [
-      {
-        path: '',
-        loadComponent: () => import('./features/chat/chat-page.component').then(m => m.ChatPageComponent),
-        children: [
-          {
-            path: ':id',
-            loadComponent: () => import('./features/chat/chat-window.component').then(m => m.ChatWindowComponent)
-          },
-          {
-            path: '',
-            loadComponent: () => import('./features/chat/chat-window.component').then(m => m.ChatWindowComponent)
-          }
-        ]
-      },
       {
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard.component').then(m => m.DashboardComponent)
       },
       {
         path: 'channels',
-        loadComponent: () => import('./features/chat/channels.component').then(m => m.ChannelsComponent)
+        loadComponent: () => import('./features/components/channels/channels.component').then(m => m.ChannelsComponent)
       },
       {
         path: 'agents',
-        loadComponent: () => import('./features/chat/agents.component').then(m => m.AgentsComponent)
+        loadComponent: () => import('./features/components/agents/agents.component').then(m => m.AgentsComponent)
+      },
+      {
+        path: '',
+        loadComponent: () => import('./features/components/chat/chat-page.component').then(m => m.ChatPageComponent),
+        children: [
+          {
+            path: ':id',
+            loadComponent: () => import('./features/components/chat/chat-window.component').then(m => m.ChatWindowComponent)
+          },
+          {
+            path: '',
+            loadComponent: () => import('./features/components/chat/chat-window.component').then(m => m.ChatWindowComponent)
+          }
+        ]
       }
     ]
   },

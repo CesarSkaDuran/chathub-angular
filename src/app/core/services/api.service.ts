@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core'
 import { HttpClient, HttpParams } from '@angular/common/http'
-import { environment } from '../../../environments/environment'
+import { AppConfigService } from './app-config.service'
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private api = environment.apiUrl
+  private get api() { return this.cfg.apiUrl }
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private cfg: AppConfigService) {}
 
   // ── Auth ──────────────────────────────────────────────
   me() { return this.http.get<any>(`${this.api}/auth/me`) }
@@ -37,6 +37,10 @@ export class ApiService {
     return this.http.put<any>(`${this.api}/conversations/${id}/read`, {})
   }
 
+  deleteConversation(id: number) {
+    return this.http.delete<any>(`${this.api}/conversations/${id}`)
+  }
+
   // ── Messages ──────────────────────────────────────────
   getMessages(convId: number, page = 1) {
     return this.http.get<any>(`${this.api}/conversations/${convId}/messages`, {
@@ -51,6 +55,7 @@ export class ApiService {
   // ── Channels ──────────────────────────────────────────
   getChannels() { return this.http.get<any[]>(`${this.api}/channels`) }
   createChannel(data: any) { return this.http.post<any>(`${this.api}/channels`, data) }
+  updateChannel(id: number, data: any) { return this.http.put<any>(`${this.api}/channels/${id}`, data) }
   deleteChannel(id: number) { return this.http.delete<any>(`${this.api}/channels/${id}`) }
   reconnectChannel(id: number) { return this.http.post<any>(`${this.api}/channels/${id}/reconnect`, {}) }
   getQr(id: number) { return this.http.get<any>(`${this.api}/channels/${id}/qr`) }
@@ -63,4 +68,5 @@ export class ApiService {
   }
   createAgent(data: any) { return this.http.post<any>(`${this.api}/agents`, data) }
   updateAgent(id: number, data: any) { return this.http.put<any>(`${this.api}/agents/${id}`, data) }
+  deleteAgent(id: number) { return this.http.delete<any>(`${this.api}/agents/${id}`) }
 }

@@ -1,0 +1,63 @@
+<div class="dashboard">
+  <div class="dash-header">
+    <h2>Dashboard</h2>
+    <span class="text-muted text-small">Resumen de hoy</span>
+  </div>
+
+  @if (loading()) {
+    <div class="dash-loading">
+      <div class="spinner-ring"></div>
+    </div>
+  } @else {
+    <!-- KPI cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon open"><span class="material-symbols-rounded icon-fill">chat_bubble</span></div>
+        <div class="kpi-val">{{ stats()?.open ?? 0 }}</div>
+        <div class="kpi-label">Abiertas</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon pending"><span class="material-symbols-rounded icon-fill">pending</span></div>
+        <div class="kpi-val">{{ stats()?.pending ?? 0 }}</div>
+        <div class="kpi-label">Pendientes</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon resolved"><span class="material-symbols-rounded icon-fill">check_circle</span></div>
+        <div class="kpi-val">{{ stats()?.resolved_today ?? 0 }}</div>
+        <div class="kpi-label">Resueltas hoy</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon unassigned"><span class="material-symbols-rounded icon-fill">person_off</span></div>
+        <div class="kpi-val">{{ stats()?.unassigned ?? 0 }}</div>
+        <div class="kpi-label">Sin asignar</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon messages"><span class="material-symbols-rounded icon-fill">forum</span></div>
+        <div class="kpi-val">{{ stats()?.messages_today ?? 0 }}</div>
+        <div class="kpi-label">Mensajes hoy</div>
+      </div>
+    </div>
+
+    <!-- By channel -->
+    <div class="section">
+      <h3 class="section-title">Conversaciones por canal</h3>
+      <div class="channel-list">
+        @for (ch of stats()?.by_channel ?? []; track ch.id) {
+          <div class="channel-row">
+            <div class="ch-info">
+              <span class="ch-badge" [class]="ch.type">
+                <span class="material-symbols-rounded icon-fill">{{ chIcon(ch.type) }}</span>
+                {{ ch.name }}
+              </span>
+              <span class="status-dot" [class]="ch.channel_status" title="{{ ch.channel_status }}"></span>
+            </div>
+            <div class="ch-bar-wrap">
+              <div class="ch-bar" [style.width.%]="barWidth(ch.open_count)"></div>
+            </div>
+            <span class="ch-count">{{ ch.open_count }}</span>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

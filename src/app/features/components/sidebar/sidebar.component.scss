@@ -1,0 +1,138 @@
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand {
+  padding: 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
+  background: var(--accent-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--accent);
+  }
+}
+
+.brand-name {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.3px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: all 0.15s;
+  text-decoration: none;
+
+  &:hover {
+    background: var(--bg-3);
+    color: var(--text-1);
+  }
+
+  &.active {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .material-symbols-rounded {
+    font-size: 19px;
+  }
+
+  span:nth-child(2) {
+    flex: 1;
+  }
+}
+
+.unread-dot {
+  background: var(--red);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 99px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.sidebar-user {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.user-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.user-role {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  padding: 4px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    background: var(--bg-3);
+    color: var(--red);
+  }
+}

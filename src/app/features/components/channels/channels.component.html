@@ -1,0 +1,127 @@
+<div class="channels-page">
+  <div class="page-header">
+    <h2>Canales</h2>
+    <button class="btn btn-primary" (click)="showCreateForm()">
+      <span class="material-symbols-rounded">add</span> Nuevo canal
+    </button>
+  </div>
+
+  @if (showForm) {
+    <div class="form-card fade-in">
+      <h3>{{ editingId ? 'Editar canal' : 'Agregar canal WhatsApp' }}</h3>
+      <div class="form-grid">
+        <div class="field">
+          <label>Nombre</label>
+          <input class="input" [(ngModel)]="form.name" placeholder="WhatsApp Norte 1">
+        </div>
+        <div class="field">
+          <label>Número (con código de país)</label>
+          <input class="input" [(ngModel)]="form.identifier" placeholder="573001234567">
+        </div>
+        <div class="field">
+          <label>Tipo</label>
+          <select class="input" [(ngModel)]="form.type">
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">Email</option>
+            <option value="webchat">Chat Web</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Sucursal ID</label>
+          <input class="input" [(ngModel)]="form.branch_id" type="number" placeholder="1">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" (click)="save()" [disabled]="creating()">
+          {{ creating() ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Crear canal') }}
+        </button>
+        <button class="btn btn-ghost" (click)="cancel()">Cancelar</button>
+      </div>
+    </div>
+  }
+
+  <div class="channels-grid">
+    @for (ch of channels(); track ch.id) {
+      <div class="channel-card">
+        <div class="card-top">
+          <span class="ch-badge" [class]="ch.type">
+            <span class="material-symbols-rounded icon-fill">{{ chIcon(ch.type) }}</span>
+            {{ ch.type }}
+          </span>
+          <span class="status-dot-lg" [class]="ch.status" title="{{ ch.status }}"></span>
+        </div>
+        <div class="ch-name">{{ ch.name }}</div>
+        <div class="ch-id">{{ ch.identifier }}</div>
+        <div class="ch-branch">{{ ch.branch_name }}</div>
+
+        <div class="card-actions">
+          @if (ch.type === 'whatsapp') {
+            <button 
+              class="btn btn-primary btn-sm" 
+              (click)="openQrModal(ch.id)" 
+              title="Ver QR">
+              <span class="material-symbols-rounded">qr_code</span> 
+              {{ qrs()[ch.id] ? 'Ver QR' : 'Generar QR' }}
+            </button>
+            <button class="btn btn-ghost btn-sm" (click)="reconnect(ch)" title="Reconectar">
+              <span class="material-symbols-rounded">refresh</span>
+            </button>
+          }
+          <button class="btn btn-ghost btn-sm" (click)="edit(ch)" title="Editar">
+            <span class="material-symbols-rounded">edit</span>
+          </button>
+          <button class="btn btn-danger btn-sm" (click)="remove(ch.id)" title="Eliminar">
+            <span class="material-symbols-rounded">delete</span>
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- ✅ MODAL DEL QR -->
+@if (qrModalOpen()) {
+  <div class="modal-backdrop" (click)="closeQrModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Código QR - {{ qrModalChannelName() }}</h3>
+        <button class="modal-close" (click)="closeQrModal()" title="Cerrar">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        @if (qrModalLoading()) {
+          <div class="qr-loading">
+            <div class="spinner"></div>
+            <p>Generando código QR...</p>
+          </div>
+        } @else if (qrModalError()) {
+          <div class="qr-error">
+            <span class="material-symbols-rounded">error</span>
+            <p>{{ qrModalError() }}</p>
+            <button class="btn btn-primary btn-sm" (click)="retryQr()">
+              <span class="material-symbols-rounded">refresh</span> Reintentar
+            </button>
+          </div>
+        } @else if (qrModalImage()) {
+          <img [src]="qrModalImage()" alt="QR Code" class="qr-modal-img">
+          <p class="text-small text-muted">Escanea este código con WhatsApp para conectar el canal</p>
+          <p class="text-small text-warning">⚠️ El código QR expira en unos segundos. Si no funciona, regenera uno nuevo.</p>
+        }
+      </div>
+
+      <div class="modal-footer">
+        @if (qrModalImage()) {
+          <button class="btn btn-ghost btn-sm" (click)="downloadQr()">
+            <span class="material-symbols-rounded">download</span> Descargar
+          </button>
+          <button class="btn btn-primary btn-sm" (click)="retryQr()">
+            <span class="material-symbols-rounded">refresh</span> Regenerar QR
+          </button>
+        }
+        <button class="btn btn-ghost btn-sm" (click)="closeQrModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
-import { AuthService } from '../../core/services/auth.service'
-import { SocketService } from '../../core/services/socket.service'
-import { SidebarComponent } from './sidebar.component'
+import { AuthService } from '../../../core/services/auth.service'
+import { SocketService } from '../../../core/services/socket.service'
+import { SidebarComponent } from '../sidebar/sidebar.component'
 
 @Component({
   selector: 'app-chat-shell',

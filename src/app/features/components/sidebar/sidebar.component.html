@@ -1,0 +1,47 @@
+<aside class="sidebar">
+  <!-- Brand -->
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <span class="material-symbols-rounded icon-fill">forum</span>
+    </div>
+    <span class="brand-name">ChatHub</span>
+  </div>
+
+  <!-- Nav -->
+  <nav class="sidebar-nav">
+    <a class="nav-item" routerLink="/chat" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">
+      <span class="material-symbols-rounded">chat_bubble</span>
+      <span>Conversaciones</span>
+      @if (pendingCount() > 0) {
+        <span class="unread-dot">{{ pendingCount() }}</span>
+      }
+    </a>
+
+    @if (auth.isSupervisor()) {
+      <a class="nav-item" routerLink="/chat/dashboard" routerLinkActive="active">
+        <span class="material-symbols-rounded">bar_chart</span>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-item" routerLink="/chat/channels" routerLinkActive="active">
+        <span class="material-symbols-rounded">hub</span>
+        <span>Canales</span>
+      </a>
+      <a class="nav-item" routerLink="/chat/agents" routerLinkActive="active">
+        <span class="material-symbols-rounded">group</span>
+        <span>Agentes</span>
+      </a>
+    }
+  </nav>
+
+  <!-- User -->
+  <div class="sidebar-user">
+    <div class="avatar">{{ initials() }}</div>
+    <div class="user-info">
+      <div class="user-name truncate">{{ auth.currentUser()?.name }}</div>
+      <div class="user-role">{{ roleLabel() }}</div>
+    </div>
+    <button class="logout-btn" (click)="auth.logout()" title="Cerrar sesión">
+      <span class="material-symbols-rounded">logout</span>
+    </button>
+  </div>
+</aside>

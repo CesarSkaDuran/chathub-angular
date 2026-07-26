@@ -1,0 +1,153 @@
+<div class="chat-window">
+  @if (!conv()) {
+    <div class="empty-state">
+      <span class="material-symbols-rounded">forum</span>
+      <h3>Selecciona una conversación</h3>
+      <p>Elige un chat de la lista para empezar</p>
+    </div>
+  } @else {
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="header-left">
+        <div class="avatar lg">{{ initials(conv().contact_name) }}</div>
+        <div>
+          <div class="contact-name">{{ conv().contact_name || conv().phone }}</div>
+          <div class="contact-sub">
+            <span class="ch-badge" [class]="conv().channel_type">
+              <span class="material-symbols-rounded icon-fill">{{ chIcon(conv().channel_type) }}</span>
+              {{ conv().channel_name }}
+            </span>
+            @if (conv().phone) {
+              <span class="text-muted text-xs">{{ conv().phone }}</span>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <!-- Status selector -->
+        <div class="status-selector">
+          @for (s of statuses; track s.value) {
+            <button class="status-btn" [class]="s.value" [class.active]="conv().status === s.value"
+              (click)="changeStatus(s.value)">
+              {{ s.label }}
+            </button>
+          }
+        </div>
+        <!-- Assign -->
+        @if (auth.isSupervisor()) {
+          <div class="assign-wrap">
+            <select class="input assign-select" (change)="assignAgent($event)">
+              <option value="">Asignar agente...</option>
+              @for (a of agents(); track a.id) {
+                <option [value]="a.id" [selected]="conv().assigned_agent_id === a.id">
+                  {{ a.name }}
+                </option>
+              }
+            </select>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages-area" #msgArea>
+      @if (loadingMsgs()) {
+        <div class="loading-msgs">
+          <div class="spinner-ring"></div>
+        </div>
+      }
+      @for (msg of messages(); track msg.id) {
+        <div class="msg-row" [class.outbound]="msg.direction === 'outbound'" [class.inbound]="msg.direction === 'inbound'">
+          <div class="msg-bubble" [class]="msg.direction">
+            @if (msg.type === 'text') {
+              <p class="msg-text" [innerHTML]="msg.body || ''"></p>
+            } @else if (msg.type === 'image') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">image</span>
+                <span [innerHTML]="msg.body || 'Imagen'"></span>
+              </div>
+            } @else if (msg.type === 'audio') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">mic</span>
+                <span>🎤 Audio</span>
+              </div>
+            } @else if (msg.type === 'document') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">description</span>
+                <span>{{ msg.body || 'Documento' }}</span>
+              </div>
+            } @else if (msg.type === 'video') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">videocam</span>
+                <span>🎥 Video</span>
+              </div>
+            } @else if (msg.type === 'sticker') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">sentiment_satisfied</span>
+                <span>😀 Sticker</span>
+              </div>
+            } @else if (msg.type === 'location') {
+              <div class="msg-media">
+                <span class="material-symbols-rounded">location_on</span>
+                <span>📍 Ubicación</span>
+              </div>
+            } @else {
+              <p class="msg-text" [innerHTML]="msg.body || ''"></p>
+            }
+            <div class="msg-meta">
+              <span class="msg-time">{{ formatTime(msg.created_at) }}</span>
+              @if (msg.direction === 'outbound') {
+                <span class="msg-status material-symbols-rounded icon-fill"
+                  [class]="'status-' + msg.status">
+                  {{ msg.status === 'read' ? 'done_all' : msg.status === 'delivered' ? 'done_all' : 'done' }}
+                </span>
+              }
+              @if (msg.direction === 'inbound' && msg.sender_name) {
+                <span class="msg-sender">{{ msg.sender_name }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      }
+      <!-- Typing indicator -->
+      @if (typingUser()) {
+        <div class="msg-row inbound">
+          <div class="msg-bubble inbound typing-bubble">
+            <span class="typing-dots"><i></i><i></i><i></i></span>
+            <span class="typing-name">{{ typingUser() }} está escribiendo</span>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input-area">
+      @if (conv().status === 'resolved') {
+        <div class="resolved-banner">
+          <span class="material-symbols-rounded">check_circle</span>
+          Conversación resuelta.
+          <button class="btn btn-ghost btn-sm" (click)="changeStatus('open')">Reabrir</button>
+        </div>
+      } @else {
+        <div class="input-row">
+          <textarea
+            class="msg-input"
+            [(ngModel)]="messageText"
+            (keydown)="onKeydown($event)"
+            (input)="onTyping()"
+            placeholder="Escribe un mensaje... (Enter para enviar, Shift+Enter nueva línea)"
+            rows="1"
+            #msgInput>
+          </textarea>
+          <button class="send-btn" (click)="sendMessage()" [disabled]="!messageText.trim() || sending()">
+            @if (sending()) {
+              <div class="spinner-sm"></div>
+            } @else {
+              <span class="material-symbols-rounded icon-fill">send</span>
+            }
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

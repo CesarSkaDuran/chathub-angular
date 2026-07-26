@@ -1,0 +1,111 @@
+<div class="conv-list">
+  <!-- Header -->
+  <div class="list-header">
+    <h2>Conversaciones</h2>
+    <span class="total-badge">{{ total() }}</span>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="search-wrap">
+      <span class="material-symbols-rounded">search</span>
+      <input class="input search-input" [(ngModel)]="search"
+        (ngModelChange)="onSearch()" placeholder="Buscar contacto...">
+    </div>
+    <div class="filter-tabs">
+      @for (s of statuses; track s.value) {
+        <button class="tab" [class.active]="statusFilter === s.value"
+          (click)="setStatus(s.value)">
+          {{ s.label }}
+        </button>
+      }
+    </div>
+    <div class="channel-filters">
+      @for (ch of channelTypes; track ch.value) {
+        <button class="ch-filter" [class.active]="channelFilter === ch.value"
+          (click)="setChannel(ch.value)" [class]="'ch-filter ch-' + ch.value">
+          <span class="material-symbols-rounded">{{ ch.icon }}</span>
+          {{ ch.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- List -->
+  <div class="list-body">
+    @if (loading()) {
+      @for (i of [1,2,3,4,5]; track i) {
+        <div class="conv-skeleton">
+          <div class="sk-avatar"></div>
+          <div class="sk-lines"><div class="sk-line"></div><div class="sk-line short"></div></div>
+        </div>
+      }
+    } @else if (conversations().length === 0) {
+      <div class="empty">
+        <span class="material-symbols-rounded">chat_bubble_outline</span>
+        <p>Sin conversaciones</p>
+      </div>
+    } @else {
+      @for (conv of conversations(); track conv.id) {
+        <a class="conv-item" [class.active]="activeId === conv.id"
+          [routerLink]="['/chat', conv.id]">
+          <!-- Avatar + channel badge -->
+          <div class="avatar-wrap">
+            <div class="avatar">{{ initials(conv.contact?.name) }}</div>
+            <span class="ch-dot" [class]="'ch-dot-' + conv.channel?.type" title="{{ conv.channel?.type }}">
+              <span class="material-symbols-rounded icon-fill">{{ chIcon(conv.channel?.type) }}</span>
+            </span>
+          </div>
+          <!-- Info -->
+          <div class="conv-info">
+            <div class="conv-top">
+              <span class="contact-name truncate">{{ conv.contact?.name || conv.contact?.phone }}</span>
+              <span class="conv-time">{{ timeAgo(conv.last_message_at) }}</span>
+            </div>
+            <div class="conv-bottom">
+              <span class="last-msg truncate">
+                @if (conv.last_message?.direction === 'outbound') {
+                  <span class="material-symbols-rounded sent-icon">done_all</span>
+                }
+                {{ conv.last_message?.body || '📎 Archivo' }}
+              </span>
+              <div class="conv-badges">
+                @if (conv.unread_count > 0) {
+                  <span class="unread-dot">{{ conv.unread_count }}</span>
+                }
+                <span class="status-badge" [class]="conv.status">{{ statusLabel(conv.status) }}</span>
+              </div>
+            </div>
+            <div class="channel-label">
+              <span class="ch-badge" [class]="conv.channel?.type">{{ conv.channel?.name }}</span>
+            </div>
+          </div>
+          <!-- Action buttons -->
+          <div class="conv-actions" (click)="$event.stopPropagation()">
+            @if (auth.isAdmin()) {
+              <button class="action-btn delete-btn" (click)="deleteConversation(conv.id)" title="Eliminar conversación">
+                <span class="material-symbols-rounded">delete</span>
+              </button>
+            }
+            <button class="action-btn resolve-btn" (click)="resolveConversation(conv.id)" title="Marcar como resuelta">
+              <span class="material-symbols-rounded">check_circle</span>
+            </button>
+          </div>
+        </a>
+      }
+    }
+  </div>
+
+  <!-- Pagination -->
+  @if (total() > 25) {
+    <div class="pagination">
+      <button class="btn btn-ghost" (click)="prevPage()" [disabled]="page === 1">
+        <span class="material-symbols-rounded">chevron_left</span>
+      </button>
+      <span class="page-info">{{ page }} / {{ totalPages() }}</span>
+      <button class="btn btn-ghost" (click)="nextPage()" [disabled]="page >= totalPages()">
+        <span class="material-symbols-rounded">chevron_right</span>
+      </button>
+    </div>
+  }
+</div>

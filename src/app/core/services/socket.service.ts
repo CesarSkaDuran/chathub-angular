@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core'
 import { Subject } from 'rxjs'
 import { io, Socket } from 'socket.io-client'
-import { environment } from '../../../environments/environment'
 import { AuthService } from './auth.service'
+import { AppConfigService } from './app-config.service'
 
 @Injectable({ providedIn: 'root' })
 export class SocketService {
@@ -13,15 +13,20 @@ export class SocketService {
   channelStatus$ = new Subject<any>()
   typing$        = new Subject<any>()
 
-  constructor(private auth: AuthService) {}
+  constructor(private auth: AuthService, private cfg: AppConfigService) {}
 
   connect() {
     const token = this.auth.getToken()
     if (!token) return
+    if (this.socket?.connected) return
 
-    this.socket = io(environment.socketUrl, {
+    this.socket = io(this.cfg.socketUrl, {
       auth: { token },
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
     })
 
     this.socket.on('connect', () => console.log('[Socket] Conectado'))

@@ -1,0 +1,56 @@
+<div class="login-wrap">
+  <div class="login-card fade-in">
+
+    <div class="brand">
+      <div class="brand-icon">
+        <span class="material-symbols-rounded icon-fill">forum</span>
+      </div>
+      <h1>ChatHub</h1>
+      <p>Panel de atención multicanal</p>
+    </div>
+
+    <form (ngSubmit)="submit()">
+      <div class="field">
+        <label>Correo electrónico</label>
+        <div class="input-wrap">
+          <span class="material-symbols-rounded">mail</span>
+          <input class="input" type="email" [(ngModel)]="email" name="email"
+            placeholder="admin@chathub.com" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Contraseña</label>
+        <div class="input-wrap">
+          <span class="material-symbols-rounded">lock</span>
+          <input class="input" [type]="showPass ? 'text' : 'password'"
+            [(ngModel)]="password" name="password"
+            placeholder="••••••••" required autocomplete="current-password">
+          <button type="button" class="toggle-pass" (click)="showPass = !showPass">
+            <span class="material-symbols-rounded">{{ showPass ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+      </div>
+
+      @if (error()) {
+        <div class="error-msg fade-in">
+          <span class="material-symbols-rounded">error</span>
+          {{ error() }}
+        </div>
+      }
+
+      <button type="submit" class="btn btn-primary submit-btn" [disabled]="loading()">
+        @if (loading()) {
+          <span class="spinner"></span> Ingresando...
+        } @else {
+          <span class="material-symbols-rounded">login</span> Ingresar
+        }
+      </button>
+    </form>
+
+    <div class="hint">
+      <span class="material-symbols-rounded">info</span>
+      Prueba: admin&#64;chathub.com / password
+    </div>
+  </div>
+</div>
