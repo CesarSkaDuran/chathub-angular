@@ -22,6 +22,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
   search        = ''
   statusFilter  = 'open'
   channelFilter = 'all'
+  viewMode: 'chats' | 'groups' = 'chats'
   activeId?: number
   private subs: Subscription[] = []
   private searchSubject = new Subject<string>()
@@ -65,6 +66,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
     const filters: any = { status: this.statusFilter, page: this.page }
     if (this.search) filters.search = this.search
     if (this.channelFilter !== 'all') filters.channel_type = this.channelFilter
+    filters.is_group = this.viewMode === 'groups'
 
     this.api.getConversations(filters).subscribe(res => {
       this.conversations.set(res.data)
@@ -75,6 +77,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
 
   setStatus(s: string)  { this.statusFilter = s;  this.page = 1; this.load() }
   setChannel(c: string) { this.channelFilter = c; this.page = 1; this.load() }
+  setViewMode(m: 'chats' | 'groups') { this.viewMode = m; this.page = 1; this.load() }
   onSearch() { this.searchSubject.next(this.search) }
   prevPage() { if (this.page > 1) { this.page--; this.load() } }
   nextPage() { if (this.page < this.totalPages()) { this.page++; this.load() } }

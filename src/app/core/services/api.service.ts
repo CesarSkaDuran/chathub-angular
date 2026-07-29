@@ -17,7 +17,9 @@ export class ApiService {
   // ── Conversations ─────────────────────────────────────
   getConversations(filters: any = {}) {
     let params = new HttpParams()
-    Object.entries(filters).forEach(([k, v]) => { if (v) params = params.set(k, String(v)) })
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v))
+    })
     return this.http.get<any>(`${this.api}/conversations`, { params })
   }
 
@@ -50,6 +52,10 @@ export class ApiService {
 
   sendMessage(convId: number, body: string, type = 'text') {
     return this.http.post<any>(`${this.api}/conversations/${convId}/messages`, { type, body })
+  }
+
+  deleteMessageMedia(id: number) {
+    return this.http.delete<any>(`${this.api}/messages/${id}/media`)
   }
 
   // ── Channels ──────────────────────────────────────────

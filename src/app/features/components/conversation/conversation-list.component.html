@@ -7,6 +7,16 @@
 
   <!-- Filters -->
   <div class="filters">
+    <div class="view-mode-tabs">
+      <button class="view-mode-btn" [class.active]="viewMode === 'chats'" (click)="setViewMode('chats')">
+        <span class="material-symbols-rounded">chat</span>
+        Chats
+      </button>
+      <button class="view-mode-btn" [class.active]="viewMode === 'groups'" (click)="setViewMode('groups')">
+        <span class="material-symbols-rounded">groups</span>
+        Grupos
+      </button>
+    </div>
     <div class="search-wrap">
       <span class="material-symbols-rounded">search</span>
       <input class="input search-input" [(ngModel)]="search"
@@ -51,7 +61,13 @@
           [routerLink]="['/chat', conv.id]">
           <!-- Avatar + channel badge -->
           <div class="avatar-wrap">
-            <div class="avatar">{{ initials(conv.contact?.name) }}</div>
+            <div class="avatar" [class.group-avatar]="conv.contact?.is_group">
+              @if (conv.contact?.is_group) {
+                <span class="material-symbols-rounded icon-fill">groups</span>
+              } @else {
+                {{ initials(conv.contact?.name) }}
+              }
+            </div>
             <span class="ch-dot" [class]="'ch-dot-' + conv.channel?.type" title="{{ conv.channel?.type }}">
               <span class="material-symbols-rounded icon-fill">{{ chIcon(conv.channel?.type) }}</span>
             </span>

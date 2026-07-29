@@ -9,7 +9,13 @@
     <!-- Header -->
     <div class="chat-header">
       <div class="header-left">
-        <div class="avatar lg">{{ initials(conv().contact_name) }}</div>
+        <div class="avatar lg" [class.group-avatar]="conv().is_group">
+          @if (conv().is_group) {
+            <span class="material-symbols-rounded icon-fill">groups</span>
+          } @else {
+            {{ initials(conv().contact_name) }}
+          }
+        </div>
         <div>
           <div class="contact-name">{{ conv().contact_name || conv().phone }}</div>
           <div class="contact-sub">
@@ -62,15 +68,34 @@
             @if (msg.type === 'text') {
               <p class="msg-text" [innerHTML]="msg.body || ''"></p>
             } @else if (msg.type === 'image') {
-              <div class="msg-media">
-                <span class="material-symbols-rounded">image</span>
-                <span [innerHTML]="msg.body || 'Imagen'"></span>
-              </div>
+              @if (msg.media_url) {
+                <div class="msg-media-wrap">
+                  <img [src]="msg.media_url" alt="Imagen" class="msg-image" loading="lazy"
+                    (click)="openImagePreview(msg.media_url)" />
+                  <button class="msg-delete" (click)="deleteMedia(msg)" title="Eliminar archivo">
+                    <span class="material-symbols-rounded">delete</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="msg-media">
+                  <span class="material-symbols-rounded">image</span>
+                  <span [innerHTML]="msg.body || 'Imagen'"></span>
+                </div>
+              }
             } @else if (msg.type === 'audio') {
-              <div class="msg-media">
-                <span class="material-symbols-rounded">mic</span>
-                <span>🎤 Audio</span>
-              </div>
+              @if (msg.media_url) {
+                <div class="msg-media-wrap">
+                  <audio controls [src]="msg.media_url"></audio>
+                  <button class="msg-delete" (click)="deleteMedia(msg)" title="Eliminar archivo">
+                    <span class="material-symbols-rounded">delete</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="msg-media">
+                  <span class="material-symbols-rounded">mic</span>
+                  <span>Audio no disponible</span>
+                </div>
+              }
             } @else if (msg.type === 'document') {
               <div class="msg-media">
                 <span class="material-symbols-rounded">description</span>
@@ -148,6 +173,15 @@
           </button>
         </div>
       }
+    </div>
+  }
+
+  @if (previewImage()) {
+    <div class="image-preview-overlay" (click)="closeImagePreview()">
+      <button class="image-preview-close" (click)="closeImagePreview()">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+      <img [src]="previewImage()" alt="Vista ampliada" class="image-preview-full" (click)="$event.stopPropagation()" />
     </div>
   }
 </div>

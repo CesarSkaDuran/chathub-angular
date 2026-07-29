@@ -23,6 +23,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
   loadingMsgs = signal(false)
   sending     = signal(false)
   typingUser  = signal<string | null>(null)
+  previewImage = signal<string | null>(null)
   messageText = ''
 
   private subs: Subscription[] = []
@@ -126,6 +127,26 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
         this.sending.set(false)
       },
       error: () => this.sending.set(false)
+    })
+  }
+
+  openImagePreview(url: string) {
+    this.previewImage.set(url)
+  }
+
+  closeImagePreview() {
+    this.previewImage.set(null)
+  }
+
+  deleteMedia(msg: any) {
+    if (!msg?.id || !msg?.media_url) return
+    this.api.deleteMessageMedia(msg.id).subscribe({
+      next: () => {
+        this.messages.update(list => list.map(m =>
+          m.id === msg.id ? { ...m, media_url: null, media_mime_type: null } : m
+        ))
+      },
+      error: (err) => console.error('Error eliminando archivo:', err)
     })
   }
 
