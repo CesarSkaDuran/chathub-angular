@@ -58,6 +58,13 @@ export class ApiService {
     return this.http.delete<any>(`${this.api}/messages/${id}/media`)
   }
 
+  uploadAndSendMedia(convId: number, file: File, caption?: string) {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (caption) formData.append('caption', caption)
+    return this.http.post<any>(`${this.api}/conversations/${convId}/messages/upload`, formData)
+  }
+
   // ── Channels ──────────────────────────────────────────
   getChannels() { return this.http.get<any[]>(`${this.api}/channels`) }
   createChannel(data: any) { return this.http.post<any>(`${this.api}/channels`, data) }

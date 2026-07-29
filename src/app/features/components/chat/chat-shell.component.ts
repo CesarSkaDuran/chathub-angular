@@ -1,7 +1,9 @@
-import { Component, OnInit } from '@angular/core'
+import { Component, OnInit, OnDestroy } from '@angular/core'
 import { RouterOutlet } from '@angular/router'
+import { Subscription } from 'rxjs'
 import { AuthService } from '../../../core/services/auth.service'
 import { SocketService } from '../../../core/services/socket.service'
+import { NotificationService } from '../../../core/services/notification.service'
 import { SidebarComponent } from '../sidebar/sidebar.component'
 
 @Component({
@@ -26,11 +28,27 @@ import { SidebarComponent } from '../sidebar/sidebar.component'
     }
   `]
 })
-export class ChatShellComponent implements OnInit {
-  constructor(private socket: SocketService, private auth: AuthService) {}
+export class ChatShellComponent implements OnInit, OnDestroy {
+  private sub?: Subscription
+
+  constructor(
+    private socket: SocketService,
+    private auth: AuthService,
+    private notifications: NotificationService,
+  ) {}
 
   ngOnInit() {
     if (!this.socket) return
     this.socket.connect()
+
+    this.sub = this.socket.message$.subscribe(msg => {
+      if (msg?.direction === 'inbound') {
+        this.notifications.notify(msg.body)
+      }
+    })
+  }
+
+  ngOnDestroy() {
+    this.sub?.unsubscribe()
   }
 }
