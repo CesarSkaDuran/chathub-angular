@@ -73,6 +73,16 @@ export class ApiService {
   reconnectChannel(id: number) { return this.http.post<any>(`${this.api}/channels/${id}/reconnect`, {}) }
   getQr(id: number) { return this.http.get<any>(`${this.api}/channels/${id}/qr`) }
 
+  // ── Quick Replies ─────────────────────────────────────
+  getQuickReplies(branch_id?: number) {
+    let params = new HttpParams()
+    if (branch_id) params = params.set('branch_id', branch_id)
+    return this.http.get<any[]>(`${this.api}/quick-replies`, { params })
+  }
+  createQuickReply(data: any) { return this.http.post<any>(`${this.api}/quick-replies`, data) }
+  updateQuickReply(id: number, data: any) { return this.http.put<any>(`${this.api}/quick-replies/${id}`, data) }
+  deleteQuickReply(id: number) { return this.http.delete<any>(`${this.api}/quick-replies/${id}`) }
+
   // ── Agents ────────────────────────────────────────────
   getAgents(branch_id?: number) {
     let params = new HttpParams()

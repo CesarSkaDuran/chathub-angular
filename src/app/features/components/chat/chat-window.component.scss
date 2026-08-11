@@ -444,6 +444,107 @@
   animation: fadeIn 0.12s ease;
 }
 
+.quick-replies-popup {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: 360px;
+  max-height: 320px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: fadeIn 0.12s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quick-replies-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  background: var(--bg-2);
+
+  .material-symbols-rounded {
+    font-size: 18px;
+    color: var(--accent);
+  }
+}
+
+.quick-replies-list {
+  overflow-y: auto;
+  max-height: 260px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-reply-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: all 0.12s;
+
+  &:hover {
+    background: var(--bg-2);
+    border-color: var(--border);
+  }
+}
+
+.quick-reply-shortcut {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: lowercase;
+}
+
+.quick-reply-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.quick-reply-preview {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.quick-replies-empty {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.quick-replies-trigger-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.quick-replies-trigger {
+  position: relative;
+}
+
 .attach-btn {
   width: 40px;
   height: 40px;

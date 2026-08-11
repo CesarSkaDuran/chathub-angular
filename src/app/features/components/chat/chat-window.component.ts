@@ -30,6 +30,9 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
   isRecording = signal(false)
   recordSeconds = signal(0)
   showEmojiPicker = signal(false)
+  showQuickReplies = signal(false)
+  quickReplies = signal<{ shortcut: string; label: string; text: string }[]>([])
+  quickRepliesFiltered = signal<{ shortcut: string; label: string; text: string }[]>([])
   messageText = ''
 
   private subs: Subscription[] = []
@@ -92,6 +95,23 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     if (this.auth.isSupervisor()) {
       this.api.getAgents().subscribe(a => this.agents.set(a))
     }
+
+    this.loadQuickReplies()
+  }
+
+  loadQuickReplies() {
+    this.api.getQuickReplies().subscribe({
+      next: (replies) => {
+        console.log('[QuickReplies] cargadas:', replies)
+        const mapped = replies.map(q => ({
+          shortcut: q.shortcut,
+          label: q.label || q.shortcut.replace('/', '').charAt(0).toUpperCase() + q.shortcut.replace('/', '').slice(1),
+          text: q.content,
+        }))
+        this.quickReplies.set(mapped)
+      },
+      error: (err) => console.error('[QuickReplies] error cargando:', err)
+    })
   }
 
   ngOnDestroy() {
@@ -164,11 +184,18 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent) {
-    if (!this.showEmojiPicker()) return
     const target = event.target as HTMLElement
-    if (this.emojiPicker?.contains(target)) return
-    if (target.closest('.emoji-trigger-btn')) return
-    this.showEmojiPicker.set(false)
+
+    if (this.showEmojiPicker()) {
+      if (this.emojiPicker?.contains(target)) return
+      if (target.closest('.emoji-trigger-btn')) return
+      this.showEmojiPicker.set(false)
+    }
+
+    if (this.showQuickReplies()) {
+      if (target.closest('.quick-replies-trigger') || target.closest('.quick-replies-popup')) return
+      this.showQuickReplies.set(false)
+    }
   }
 
   @HostListener('document:keydown.escape')
@@ -293,6 +320,19 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       this.sendMessage()
+      this.showQuickReplies.set(false)
+      return
+    }
+
+    if (e.key === 'Escape') {
+      this.showQuickReplies.set(false)
+      this.showEmojiPicker.set(false)
+    }
+
+    if (e.key === 'ArrowDown' && this.showQuickReplies()) {
+      e.preventDefault()
+      // Mover selección hacia abajo si se implementa
+      return
     }
   }
 
@@ -300,6 +340,38 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     this.socket.typingStart(this.currentConvId)
     clearTimeout(this.typingTimer)
     this.typingTimer = setTimeout(() => this.socket.typingStop(this.currentConvId), 2000)
+
+    this.filterQuickReplies()
+  }
+
+  toggleQuickReplies() {
+    this.showQuickReplies.update(v => !v)
+    if (this.showQuickReplies()) {
+      this.quickRepliesFiltered.set(this.quickReplies())
+    }
+  }
+
+  filterQuickReplies() {
+    const text = this.messageText.trim().toLowerCase()
+    console.log('[QuickReplies] filtrando, text:', text, 'total:', this.quickReplies().length)
+    if (text.startsWith('/')) {
+      const term = text
+      const filtered = this.quickReplies().filter(q =>
+        q.shortcut.toLowerCase().includes(term) ||
+        q.label.toLowerCase().includes(term.replace('/', ''))
+      )
+      console.log('[QuickReplies] filtradas:', filtered)
+      this.quickRepliesFiltered.set(filtered)
+      this.showQuickReplies.set(filtered.length > 0)
+    } else if (this.showQuickReplies()) {
+      this.showQuickReplies.set(false)
+    }
+  }
+
+  insertQuickReply(text: string) {
+    this.messageText = text
+    this.showQuickReplies.set(false)
+    setTimeout(() => this.msgInput?.nativeElement?.focus())
   }
 
   changeStatus(status: string) {

@@ -24,6 +24,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/components/agents/agents.component').then(m => m.AgentsComponent)
       },
       {
+        path: 'quick-replies',
+        loadComponent: () => import('./features/components/quick-replies/quick-replies.component').then(m => m.QuickRepliesComponent)
+      },
+      {
         path: '',
         loadComponent: () => import('./features/components/chat/chat-page.component').then(m => m.ChatPageComponent),
         children: [

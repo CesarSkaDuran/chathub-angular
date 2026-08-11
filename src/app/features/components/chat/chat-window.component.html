@@ -169,6 +169,33 @@
             }
           </div>
 
+          <div class="quick-replies-trigger-wrap">
+            <button class="attach-btn quick-replies-trigger" [disabled]="isRecording()"
+              (click)="toggleQuickReplies()" title="Respuestas rápidas" [class.active]="showQuickReplies()">
+              <span class="material-symbols-rounded">bolt</span>
+            </button>
+
+            @if (showQuickReplies()) {
+              <div class="quick-replies-popup">
+                <div class="quick-replies-header">
+                  <span class="material-symbols-rounded">bolt</span>
+                  <span>Respuestas rápidas</span>
+                </div>
+                <div class="quick-replies-list">
+                  @for (q of quickRepliesFiltered(); track q.shortcut) {
+                    <button class="quick-reply-item" (click)="insertQuickReply(q.text)" type="button">
+                      <span class="quick-reply-shortcut">{{ q.shortcut }}</span>
+                      <span class="quick-reply-label">{{ q.label }}</span>
+                      <span class="quick-reply-preview">{{ q.text }}</span>
+                    </button>
+                  } @empty {
+                    <div class="quick-replies-empty">No hay respuestas rápidas</div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
           <button class="attach-btn" [disabled]="uploadingMedia() || isRecording()"
             (click)="triggerFileInput(imageInput)" title="Enviar imagen">
             <span class="material-symbols-rounded">image</span>
