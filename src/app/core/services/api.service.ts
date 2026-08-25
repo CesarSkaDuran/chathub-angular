@@ -14,6 +14,19 @@ export class ApiService {
   // ── Dashboard ─────────────────────────────────────────
   stats() { return this.http.get<any>(`${this.api}/dashboard/stats`) }
 
+  // ── Reports ───────────────────────────────────────────
+  getReportsMetrics(filters: any = {}) {
+    let params = new HttpParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v))
+    })
+    return this.http.get<any>(`${this.api}/reports/metrics`, { params })
+  }
+
+  generateReport(data: any) {
+    return this.http.post<any>(`${this.api}/reports/generate`, data)
+  }
+
   // ── Conversations ─────────────────────────────────────
   getConversations(filters: any = {}) {
     let params = new HttpParams()

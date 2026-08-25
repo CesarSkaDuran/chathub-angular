@@ -34,6 +34,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
   quickReplies = signal<{ shortcut: string; label: string; text: string }[]>([])
   quickRepliesFiltered = signal<{ shortcut: string; label: string; text: string }[]>([])
   messageText = ''
+  errorMessage = signal<string | null>(null)
 
   private subs: Subscription[] = []
   private typingTimer: any
@@ -43,6 +44,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
   private audioChunks: Blob[] = []
   private mediaStream: MediaStream | null = null
   private recordInterval: any
+  private errorTimer: any
 
   statuses = [
     { value: 'open',     label: 'Abierto' },
@@ -78,6 +80,15 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
         if (updated.id === this.currentConvId) {
           this.conv.update(c => ({ ...c, ...updated }))
         }
+      }),
+      this.socket.messageStatus$.subscribe(statusUpdate => {
+        if (!statusUpdate?.id) return
+        this.messages.update(list => list.map(m => {
+          if (m.id !== statusUpdate.id) return m
+          const updated = { ...m, status: statusUpdate.status }
+          if (statusUpdate.external_id) updated.external_id = statusUpdate.external_id
+          return updated
+        }))
       }),
       this.socket.typing$.subscribe(t => {
         if (t.conversation_id === this.currentConvId) {
@@ -150,15 +161,42 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     const text = this.messageText.trim()
     if (!text || this.sending()) return
     this.sending.set(true)
+    this.errorMessage.set(null)
+    clearTimeout(this.errorTimer)
+
+    // UI optimista: crear mensaje temporal y mostrarlo inmediatamente
+    const tempId = `temp_${Date.now()}`
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: this.currentConvId,
+      direction: 'outbound',
+      type: 'text',
+      body: text,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      sender_name: this.auth.currentUser()?.name,
+    }
+    this.messages.update(m => [...m, optimisticMsg])
+    this.shouldScroll = true
     this.messageText = ''
+    this.sending.set(false)
 
     this.api.sendMessage(this.currentConvId, text).subscribe({
       next: (msg) => {
-        this.messages.update(m => [...m, msg])
+        // Reemplazar el mensaje temporal con el real de la DB
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
+        ))
         this.shouldScroll = true
-        this.sending.set(false)
       },
-      error: () => this.sending.set(false)
+      error: (err) => {
+        // Marcar el mensaje temporal como fallido
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...m, status: 'failed' } : m
+        ))
+        this.errorMessage.set(err?.error?.error || 'No se pudo enviar el mensaje')
+        this.errorTimer = setTimeout(() => this.errorMessage.set(null), 6000)
+      }
     })
   }
 
@@ -212,15 +250,41 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     const file = input.files?.[0]
     if (!file || this.uploadingMedia()) return
 
+    // UI optimista para imagen
+    const tempId = `temp_img_${Date.now()}`
+    const isImage = file.type.startsWith('image/')
+    const previewUrl = isImage ? URL.createObjectURL(file) : null
+
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: this.currentConvId,
+      direction: 'outbound',
+      type: isImage ? 'image' : 'document',
+      body: file.name,
+      media_url: previewUrl,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      sender_name: this.auth.currentUser()?.name,
+    }
+    this.messages.update(m => [...m, optimisticMsg])
+    this.shouldScroll = true
+
     this.uploadingMedia.set(true)
     this.api.uploadAndSendMedia(this.currentConvId, file).subscribe({
       next: (msg) => {
-        this.messages.update(m => [...m, msg])
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
+        ))
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
         this.shouldScroll = true
         this.uploadingMedia.set(false)
       },
       error: (err) => {
         console.error('Error subiendo archivo:', err)
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...m, status: 'failed' } : m
+        ))
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
         this.uploadingMedia.set(false)
       }
     })
@@ -276,15 +340,38 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     const ext = usedType.includes('mp4') ? 'm4a' : usedType.includes('ogg') ? 'ogg' : 'webm'
     const file = new File([blob], `voice-${Date.now()}.${ext}`, { type: usedType })
 
+    // UI optimista para nota de voz
+    const tempId = `temp_audio_${Date.now()}`
+    const previewUrl = URL.createObjectURL(blob)
+    const optimisticMsg = {
+      id: tempId,
+      conversation_id: this.currentConvId,
+      direction: 'outbound',
+      type: 'audio',
+      media_url: previewUrl,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      sender_name: this.auth.currentUser()?.name,
+    }
+    this.messages.update(m => [...m, optimisticMsg])
+    this.shouldScroll = true
+
     this.uploadingMedia.set(true)
     this.api.uploadAndSendMedia(this.currentConvId, file).subscribe({
       next: (msg) => {
-        this.messages.update(m => [...m, msg])
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
+        ))
+        URL.revokeObjectURL(previewUrl)
         this.shouldScroll = true
         this.uploadingMedia.set(false)
       },
       error: (err) => {
         console.error('Error enviando nota de voz:', err)
+        this.messages.update(list => list.map(m =>
+          m.id === tempId ? { ...m, status: 'failed' } : m
+        ))
+        URL.revokeObjectURL(previewUrl)
         this.uploadingMedia.set(false)
       }
     })

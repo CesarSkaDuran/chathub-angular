@@ -1,0 +1,99 @@
+<div class="reports">
+  <div class="reports-header">
+    <h2>Informes con IA</h2>
+    <span class="text-muted text-small">Análisis de conversaciones</span>
+  </div>
+
+  <div class="filters">
+    <label>
+      Desde
+      <input type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)">
+    </label>
+    <label>
+      Hasta
+      <input type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)">
+    </label>
+    <button class="btn btn-primary" (click)="loadMetrics()" [disabled]="loading()">
+      {{ loading() ? 'Cargando...' : 'Ver métricas' }}
+    </button>
+    <button class="btn btn-secondary" (click)="generateReport()" [disabled]="generating()">
+      {{ generating() ? 'Generando informe...' : 'Generar informe con IA' }}
+    </button>
+  </div>
+
+  <label class="prompt-label">
+    Instrucción adicional para la IA (opcional)
+    <input type="text" [ngModel]="prompt()" (ngModelChange)="prompt.set($event)" placeholder="Ej: enfócate en la eficiencia por canal">
+  </label>
+
+  @if (error()) {
+    <div class="error-box">{{ error() }}</div>
+  }
+
+  @if (loading() || generating()) {
+    <div class="reports-loading">
+      <div class="spinner-ring"></div>
+    </div>
+  }
+
+  @if (metrics() && !loading()) {
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-icon received"><span class="material-symbols-rounded icon-fill">download</span></div>
+        <div class="kpi-val">{{ metrics().received_messages }}</div>
+        <div class="kpi-label">Mensajes recibidos</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon unanswered"><span class="material-symbols-rounded icon-fill">mark_email_unread</span></div>
+        <div class="kpi-val">{{ metrics().unanswered_conversations }}</div>
+        <div class="kpi-label">Sin responder</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon time"><span class="material-symbols-rounded icon-fill">timer</span></div>
+        <div class="kpi-val">{{ formatDuration(metrics().avg_response_time_seconds) }}</div>
+        <div class="kpi-label">Tiempo promedio de respuesta</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon unread"><span class="material-symbols-rounded icon-fill">notifications_unread</span></div>
+        <div class="kpi-val">{{ metrics().total_unread }}</div>
+        <div class="kpi-label">Mensajes no leídos</div>
+      </div>
+    </div>
+
+    @if (metrics().by_channel?.length) {
+      <div class="section">
+        <h3 class="section-title">Mensajes recibidos por canal</h3>
+        <div class="channel-list">
+          @for (ch of metrics().by_channel; track ch.channel_id) {
+            <div class="channel-row">
+              <span class="ch-name">{{ ch.channel_name }}</span>
+              <span class="ch-type">{{ ch.channel_type }}</span>
+              <span class="ch-count">{{ ch.received }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @if (metrics().by_agent?.length) {
+      <div class="section">
+        <h3 class="section-title">Mensajes enviados por agente</h3>
+        <div class="agent-list">
+          @for (ag of metrics().by_agent; track ag.agent_id) {
+            <div class="agent-row">
+              <span class="agent-name">{{ ag.agent_name || 'Sin asignar' }}</span>
+              <span class="agent-count">{{ ag.sent }}</span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+  }
+
+  @if (report() && !generating()) {
+    <div class="section report-section">
+      <h3 class="section-title">Informe generado por IA</h3>
+      <pre class="report-text">{{ report() }}</pre>
+    </div>
+  }
+</div>

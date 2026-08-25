@@ -124,7 +124,7 @@
               @if (msg.direction === 'outbound') {
                 <span class="msg-status material-symbols-rounded icon-fill"
                   [class]="'status-' + msg.status">
-                  {{ msg.status === 'read' ? 'done_all' : msg.status === 'delivered' ? 'done_all' : 'done' }}
+                  {{ msg.status === 'read' ? 'done_all' : msg.status === 'delivered' ? 'done_all' : msg.status === 'failed' ? 'error' : msg.status === 'pending' ? 'schedule' : 'done' }}
                 </span>
               }
               @if (msg.direction === 'inbound' && msg.sender_name) {
@@ -147,6 +147,12 @@
 
     <!-- Input -->
     <div class="chat-input-area">
+      @if (errorMessage()) {
+        <div class="error-toast" (click)="errorMessage.set(null)">
+          <span class="material-symbols-rounded">error</span>
+          {{ errorMessage() }}
+        </div>
+      }
       @if (conv().status === 'resolved') {
         <div class="resolved-banner">
           <span class="material-symbols-rounded">check_circle</span>
