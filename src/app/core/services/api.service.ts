@@ -36,6 +36,14 @@ export class ApiService {
     return this.http.get<any>(`${this.api}/conversations`, { params })
   }
 
+  getConversationCountsByChannel(filters: any = {}) {
+    let params = new HttpParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v))
+    })
+    return this.http.get<any>(`${this.api}/conversations/counts-by-channel`, { params })
+  }
+
   getConversation(id: number) {
     return this.http.get<any>(`${this.api}/conversations/${id}`)
   }

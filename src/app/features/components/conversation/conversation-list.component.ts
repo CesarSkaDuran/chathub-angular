@@ -1,11 +1,22 @@
-import { Component, OnInit, OnDestroy, signal, inject } from '@angular/core'
-import { Router, RouterLink, ActivatedRoute } from '@angular/router'
+import { Component, OnInit, OnDestroy, signal } from '@angular/core'
+import { RouterLink, ActivatedRoute } from '@angular/router'
 import { FormsModule } from '@angular/forms'
 import { ApiService } from '../../../core/services/api.service'
 import { SocketService } from '../../../core/services/socket.service'
 import { AuthService } from '../../../core/services/auth.service'
 import { Subscription } from 'rxjs'
 import { debounceTime, Subject } from 'rxjs'
+
+interface ChannelTab {
+  id: number | 'all'
+  name: string
+  type: string
+  status?: string
+  identifier?: string
+  total: number
+  with_unread: number
+  unread_total: number
+}
 
 @Component({
   selector: 'app-conversation-list',
@@ -21,24 +32,22 @@ export class ConversationListComponent implements OnInit, OnDestroy {
   page          = 1
   search        = ''
   statusFilter  = 'open'
+  /** 'all' o id de canal como string */
   channelFilter = 'all'
   viewMode: 'chats' | 'groups' = 'chats'
   activeId?: number
+
+  channelTabs = signal<ChannelTab[]>([])
+  channelMenuOpen = signal(false)
+
   private subs: Subscription[] = []
   private searchSubject = new Subject<string>()
+  private countsTimer: any
 
   statuses = [
     { value: 'open',     label: 'Abiertos' },
     { value: 'pending',  label: 'Pendientes' },
     { value: 'resolved', label: 'Resueltos' },
-  ]
-
-  channelTypes = [
-    { value: 'all',       label: 'Todos',      icon: 'all_inbox' },
-    { value: 'whatsapp',  label: 'WhatsApp',   icon: 'chat' },
-    { value: 'instagram', label: 'Instagram',  icon: 'photo_camera' },
-    { value: 'email',     label: 'Email',      icon: 'mail' },
-    { value: 'webchat',   label: 'Web',        icon: 'language' },
   ]
 
   constructor(
@@ -50,49 +59,158 @@ export class ConversationListComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.load()
+    this.loadChannelCounts()
     this.subs.push(
-      this.socket.convUpdated$.subscribe(updated => this.applyUpdate(updated)),
-      this.socket.message$.subscribe(msg => this.applyNewMessage(msg)),
-      this.searchSubject.pipe(debounceTime(400)).subscribe(() => { this.page = 1; this.load() })
+      this.socket.convUpdated$.subscribe(updated => {
+        this.applyUpdate(updated)
+        this.scheduleCountsRefresh()
+      }),
+      this.socket.message$.subscribe(msg => {
+        this.applyNewMessage(msg)
+        this.scheduleCountsRefresh()
+      }),
+      this.searchSubject.pipe(debounceTime(400)).subscribe(() => {
+        this.page = 1
+        this.load()
+        this.loadChannelCounts()
+      })
     )
     const paramsSub = this.route.firstChild?.params.subscribe(p => { this.activeId = +p['id'] })
     if (paramsSub) this.subs.push(paramsSub)
   }
 
-  ngOnDestroy() { this.subs.forEach(s => s.unsubscribe()) }
+  ngOnDestroy() {
+    this.subs.forEach(s => s.unsubscribe())
+    clearTimeout(this.countsTimer)
+  }
+
+  private baseFilters(): any {
+    const filters: any = { status: this.statusFilter }
+    if (this.search) filters.search = this.search
+    filters.is_group = this.viewMode === 'groups'
+    return filters
+  }
 
   load() {
     this.loading.set(true)
-    const filters: any = { status: this.statusFilter, page: this.page }
-    if (this.search) filters.search = this.search
-    if (this.channelFilter !== 'all') filters.channel_type = this.channelFilter
-    filters.is_group = this.viewMode === 'groups'
+    const filters: any = { ...this.baseFilters(), page: this.page }
+    if (this.channelFilter !== 'all') filters.channel_id = this.channelFilter
 
-    this.api.getConversations(filters).subscribe(res => {
-      this.conversations.set(res.data)
-      this.total.set(res.total)
-      this.loading.set(false)
+    this.api.getConversations(filters).subscribe({
+      next: res => {
+        this.conversations.set(res.data)
+        this.total.set(res.total)
+        this.loading.set(false)
+      },
+      error: () => this.loading.set(false)
     })
   }
 
-  setStatus(s: string)  { this.statusFilter = s;  this.page = 1; this.load() }
-  setChannel(c: string) { this.channelFilter = c; this.page = 1; this.load() }
-  setViewMode(m: 'chats' | 'groups') { this.viewMode = m; this.page = 1; this.load() }
+  loadChannelCounts() {
+    this.api.getConversationCountsByChannel(this.baseFilters()).subscribe({
+      next: res => {
+        const tabs: ChannelTab[] = [
+          {
+            id: 'all',
+            name: 'Todos',
+            type: 'all',
+            total: res.all?.total ?? 0,
+            with_unread: res.all?.with_unread ?? 0,
+            unread_total: res.all?.unread_total ?? 0,
+          },
+          ...(res.channels || []).map((ch: any) => ({
+            id: ch.id,
+            name: ch.name,
+            type: ch.type,
+            status: ch.status,
+            identifier: ch.identifier,
+            total: ch.total ?? 0,
+            with_unread: ch.with_unread ?? 0,
+            unread_total: ch.unread_total ?? 0,
+          })),
+        ]
+        this.channelTabs.set(tabs)
+      },
+      error: err => console.error('Error cargando contadores por canal:', err)
+    })
+  }
+
+  private scheduleCountsRefresh() {
+    clearTimeout(this.countsTimer)
+    this.countsTimer = setTimeout(() => this.loadChannelCounts(), 800)
+  }
+
+  setStatus(s: string) {
+    this.statusFilter = s
+    this.page = 1
+    this.load()
+    this.loadChannelCounts()
+  }
+
+  setChannel(id: number | 'all') {
+    this.channelFilter = id === 'all' ? 'all' : String(id)
+    this.channelMenuOpen.set(false)
+    this.page = 1
+    this.load()
+  }
+
+  toggleChannelMenu() {
+    this.channelMenuOpen.update(v => !v)
+  }
+
+  closeChannelMenu() {
+    this.channelMenuOpen.set(false)
+  }
+
+  selectedChannelTab(): ChannelTab | undefined {
+    const tabs = this.channelTabs()
+    if (this.channelFilter === 'all') return tabs.find(t => t.id === 'all')
+    return tabs.find(t => String(t.id) === this.channelFilter) || tabs[0]
+  }
+
+  otherChannelUnread(): number {
+    return this.channelTabs()
+      .filter(t => t.id !== 'all' && !this.isChannelActive(t))
+      .reduce((sum, t) => sum + (t.with_unread || 0), 0)
+  }
+
+  setViewMode(m: 'chats' | 'groups') {
+    this.viewMode = m
+    this.page = 1
+    this.load()
+    this.loadChannelCounts()
+  }
+
   onSearch() { this.searchSubject.next(this.search) }
   prevPage() { if (this.page > 1) { this.page--; this.load() } }
   nextPage() { if (this.page < this.totalPages()) { this.page++; this.load() } }
   totalPages() { return Math.ceil(this.total() / 25) }
 
+  isChannelActive(tab: ChannelTab) {
+    if (tab.id === 'all') return this.channelFilter === 'all'
+    return this.channelFilter === String(tab.id)
+  }
+
   applyUpdate(updated: any) {
     this.conversations.update(list => {
       const existing = list.find(c => c.id === updated.id)
       if (!existing) {
-        // Si no existe en la lista actual y es relevante, recargar para obtener datos completos
-        this.load()
+        // Solo recargar si parece una conversación nueva relevante
+        if (updated.last_message || updated.unread_count > 0) this.load()
         return list
       }
+      // Si el filtro de canal está activo y la conv ya no corresponde, quitarla
+      if (this.channelFilter !== 'all' && updated.channel?.id != null
+          && String(updated.channel.id) !== this.channelFilter) {
+        this.total.update(t => Math.max(0, t - 1))
+        return list.filter(c => c.id !== updated.id)
+      }
       return list.map(c => c.id === updated.id ? { ...c, ...updated } : c)
-        .sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime())
+        .sort((a, b) => {
+          const tb = new Date(b.last_message_at || 0).getTime()
+          const ta = new Date(a.last_message_at || 0).getTime()
+          return tb - ta
+        })
     })
   }
 
@@ -101,12 +219,10 @@ export class ConversationListComponent implements OnInit, OnDestroy {
       const existingIndex = list.findIndex(c => c.id === msg.conversation_id)
 
       if (existingIndex === -1) {
-        // Nueva conversación: recargar lista para obtener datos completos del backend
         this.load()
         return list
       }
 
-      // Actualizar conversación existente
       const updated = [...list]
       const isInbound = msg.direction === 'inbound'
       updated[existingIndex] = {
@@ -125,7 +241,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
   }
 
   chIcon(type: string) {
-    const m: any = { whatsapp: 'chat', instagram: 'photo_camera', email: 'mail', webchat: 'language' }
+    const m: any = { whatsapp: 'chat', instagram: 'photo_camera', email: 'mail', webchat: 'language', all: 'all_inbox' }
     return m[type] ?? 'chat'
   }
 
@@ -150,6 +266,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
       next: () => {
         this.conversations.update(l => l.filter(c => c.id !== id))
         this.total.update(t => Math.max(0, t - 1))
+        this.scheduleCountsRefresh()
       },
       error: (err) => {
         console.error('Error eliminando conversación:', err)
@@ -163,6 +280,7 @@ export class ConversationListComponent implements OnInit, OnDestroy {
       next: () => {
         this.conversations.update(l => l.filter(c => c.id !== id))
         this.total.update(t => Math.max(0, t - 1))
+        this.scheduleCountsRefresh()
       },
       error: (err) => {
         console.error('Error marcando como resuelta:', err)

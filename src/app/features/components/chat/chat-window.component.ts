@@ -71,9 +71,11 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
       }),
       this.socket.message$.subscribe(msg => {
         if (msg.conversation_id === this.currentConvId) {
-          this.messages.update(m => [...m, msg])
+          this.messages.update(list => this.mergeIncomingMessage(list, msg))
           this.shouldScroll = true
-          this.api.markRead(this.currentConvId).subscribe()
+          if (msg.direction === 'inbound') {
+            this.api.markRead(this.currentConvId).subscribe()
+          }
         }
       }),
       this.socket.convUpdated$.subscribe(updated => {
@@ -147,6 +149,8 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     this.api.getConversation(id).subscribe(conv => {
       this.conv.set(conv)
       this.socket.joinConversation(id)
+      // Quitar badge al instante en el listado y confirmar en backend
+      this.socket.emitConvUpdatedLocal({ id, unread_count: 0 })
       this.api.markRead(id).subscribe()
     })
 
@@ -155,6 +159,48 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
       this.loadingMsgs.set(false)
       this.shouldScroll = true
     })
+  }
+
+  /** Evita duplicados: mismo id real, o temp outbound con mismo body reciente. */
+  private mergeIncomingMessage(list: any[], msg: any): any[] {
+    if (!msg) return list
+
+    // Ya existe el mensaje real
+    if (list.some(m => m.id === msg.id)) {
+      return list.map(m => m.id === msg.id ? { ...m, ...msg } : m)
+    }
+
+    // Si llega por socket el mensaje real, reemplazar temp outbound equivalente
+    if (msg.direction === 'outbound') {
+      const tempIdx = list.findIndex(m =>
+        typeof m.id === 'string' && String(m.id).startsWith('temp_')
+        && m.direction === 'outbound'
+        && m.type === msg.type
+        && (m.body || '') === (msg.body || '')
+        && (m.media_url ? !!msg.media_url : true)
+      )
+      if (tempIdx !== -1) {
+        const next = [...list]
+        next[tempIdx] = { ...msg, sender_name: next[tempIdx].sender_name || msg.sender_name }
+        return next
+      }
+    }
+
+    return [...list, msg]
+  }
+
+  private replaceTempOrMerge(list: any[], tempId: string, msg: any, senderName?: string): any[] {
+    // Si el socket ya insertó el real, solo quitar el temp
+    if (list.some(m => m.id === msg.id)) {
+      return list
+        .filter(m => m.id !== tempId)
+        .map(m => m.id === msg.id ? { ...m, ...msg, sender_name: senderName || m.sender_name } : m)
+    }
+    // Si el temp sigue, reemplazarlo
+    if (list.some(m => m.id === tempId)) {
+      return list.map(m => m.id === tempId ? { ...msg, sender_name: senderName } : m)
+    }
+    return [...list, { ...msg, sender_name: senderName }]
   }
 
   sendMessage() {
@@ -183,14 +229,10 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
 
     this.api.sendMessage(this.currentConvId, text).subscribe({
       next: (msg) => {
-        // Reemplazar el mensaje temporal con el real de la DB
-        this.messages.update(list => list.map(m =>
-          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
-        ))
+        this.messages.update(list => this.replaceTempOrMerge(list, tempId, msg, optimisticMsg.sender_name))
         this.shouldScroll = true
       },
       error: (err) => {
-        // Marcar el mensaje temporal como fallido
         this.messages.update(list => list.map(m =>
           m.id === tempId ? { ...m, status: 'failed' } : m
         ))
@@ -272,9 +314,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     this.uploadingMedia.set(true)
     this.api.uploadAndSendMedia(this.currentConvId, file).subscribe({
       next: (msg) => {
-        this.messages.update(list => list.map(m =>
-          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
-        ))
+        this.messages.update(list => this.replaceTempOrMerge(list, tempId, msg, optimisticMsg.sender_name))
         if (previewUrl) URL.revokeObjectURL(previewUrl)
         this.shouldScroll = true
         this.uploadingMedia.set(false)
@@ -359,9 +399,7 @@ export class ChatWindowComponent implements OnInit, OnDestroy, AfterViewChecked 
     this.uploadingMedia.set(true)
     this.api.uploadAndSendMedia(this.currentConvId, file).subscribe({
       next: (msg) => {
-        this.messages.update(list => list.map(m =>
-          m.id === tempId ? { ...msg, sender_name: optimisticMsg.sender_name } : m
-        ))
+        this.messages.update(list => this.replaceTempOrMerge(list, tempId, msg, optimisticMsg.sender_name))
         URL.revokeObjectURL(previewUrl)
         this.shouldScroll = true
         this.uploadingMedia.set(false)

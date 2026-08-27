@@ -30,13 +30,51 @@
         </button>
       }
     </div>
-    <div class="channel-filters">
-      @for (ch of channelTypes; track ch.value) {
-        <button class="ch-filter" [class.active]="channelFilter === ch.value"
-          (click)="setChannel(ch.value)" [class]="'ch-filter ch-' + ch.value">
-          <span class="material-symbols-rounded">{{ ch.icon }}</span>
-          {{ ch.label }}
+    <div class="channel-picker" title="Filtrar por canal">
+      @if (selectedChannelTab(); as selected) {
+        <button type="button" class="channel-picker-btn" [class.open]="channelMenuOpen()"
+          (click)="toggleChannelMenu()">
+          <span class="material-symbols-rounded ch-icon">{{ chIcon(selected.type) }}</span>
+          <span class="channel-picker-text">
+            <span class="channel-picker-label">Canal</span>
+            <span class="channel-picker-name truncate">{{ selected.name }}</span>
+          </span>
+          <span class="channel-picker-meta">
+            <span class="channel-tab-count">{{ selected.total }}</span>
+            @if (selected.with_unread > 0) {
+              <span class="channel-tab-unread">{{ selected.with_unread }}</span>
+            } @else if (otherChannelUnread() > 0) {
+              <span class="channel-tab-unread soft" title="Sin leer en otros canales">{{ otherChannelUnread() }}</span>
+            }
+            <span class="material-symbols-rounded chev">{{ channelMenuOpen() ? 'expand_less' : 'expand_more' }}</span>
+          </span>
         </button>
+      }
+
+      @if (channelMenuOpen()) {
+        <div class="channel-menu-backdrop" (click)="closeChannelMenu()"></div>
+        <div class="channel-menu">
+          @for (tab of channelTabs(); track tab.id) {
+            <button type="button" class="channel-menu-item"
+              [class.active]="isChannelActive(tab)"
+              (click)="setChannel(tab.id)"
+              [title]="tab.identifier || tab.name">
+              <span class="material-symbols-rounded">{{ chIcon(tab.type) }}</span>
+              <span class="channel-menu-info">
+                <span class="channel-menu-name truncate">{{ tab.name }}</span>
+                @if (tab.identifier && tab.id !== 'all') {
+                  <span class="channel-menu-sub truncate">{{ tab.identifier }}</span>
+                }
+              </span>
+              <span class="channel-menu-badges">
+                <span class="channel-tab-count">{{ tab.total }}</span>
+                @if (tab.with_unread > 0) {
+                  <span class="channel-tab-unread">{{ tab.with_unread }}</span>
+                }
+              </span>
+            </button>
+          }
+        </div>
       }
     </div>
   </div>

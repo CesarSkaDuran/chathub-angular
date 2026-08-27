@@ -74,4 +74,9 @@ export class SocketService {
   leaveConversation(id: number) { this.socket?.emit('leave:conversation', id) }
   typingStart(convId: number)   { this.socket?.emit('typing:start', { conversation_id: convId }) }
   typingStop(convId: number)    { this.socket?.emit('typing:stop',  { conversation_id: convId }) }
+
+  /** Emite localmente conversation:updated (p.ej. al marcar leído). */
+  emitConvUpdatedLocal(data: any) {
+    this.convUpdated$.next(data)
+  }
 }
