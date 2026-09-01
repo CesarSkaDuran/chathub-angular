@@ -13,6 +13,16 @@ interface Channel {
   status: 'active' | 'inactive' | 'error' | 'connecting'
 }
 
+interface ChannelHealth {
+  healthy: boolean
+  needs_repair: boolean
+  issues: string[]
+  stuck_pending: number
+  undelivered: number
+  runtime_status: string
+  latest_inbound_at: string | null
+}
+
 @Component({
   selector: 'app-channels',
   standalone: true,
@@ -27,6 +37,10 @@ export class ChannelsComponent implements OnInit {
 
   channels = signal<Channel[]>([])
   qrs = signal<Record<number, string>>({})
+  health = signal<Record<number, ChannelHealth>>({})
+  healthErrors = signal<Record<number, string>>({})
+  checkingHealth = signal<Record<number, boolean>>({})
+  repairing = signal<Record<number, boolean>>({})
   creating = signal(false)
   showForm = false
   editingId: number | null = null
@@ -170,6 +184,56 @@ export class ChannelsComponent implements OnInit {
   reconnect(ch: Channel) {
     this.api.reconnectChannel(ch.id).subscribe({
       next: () => this.updateStatus(ch.id, 'connecting')
+    })
+  }
+
+  diagnose(ch: Channel) {
+    this.checkingHealth.update(state => ({ ...state, [ch.id]: true }))
+    this.healthErrors.update(state => {
+      const { [ch.id]: _, ...rest } = state
+      return rest
+    })
+    this.api.getChannelHealth(ch.id).subscribe({
+      next: result => {
+        this.health.update(state => ({ ...state, [ch.id]: result as ChannelHealth }))
+        this.checkingHealth.update(state => ({ ...state, [ch.id]: false }))
+      },
+      error: err => {
+        const message = err.status === 404
+          ? 'El backend no tiene disponible el diagnóstico. Sube los archivos de la API y reinicia el servidor.'
+          : err.status === 403
+            ? 'Tu usuario no tiene permiso para diagnosticar canales.'
+            : err.status === 0
+              ? 'No fue posible comunicarse con el servidor.'
+              : err.error?.error || 'No se pudo diagnosticar el canal.'
+        this.healthErrors.update(state => ({ ...state, [ch.id]: message }))
+        this.checkingHealth.update(state => ({ ...state, [ch.id]: false }))
+      }
+    })
+  }
+
+  repair(ch: Channel) {
+    const issues = this.health()[ch.id]?.issues || []
+    const detail = issues.length ? `\n\nProblemas detectados:\n- ${issues.join('\n- ')}` : ''
+    if (!confirm(`¿Reparar el canal "${ch.name}"?\n\nSe cerrará su sesión actual y será necesario escanear un QR nuevo. Los chats y mensajes no se eliminarán.${detail}`)) return
+
+    this.repairing.update(state => ({ ...state, [ch.id]: true }))
+    this.api.repairChannel(ch.id).subscribe({
+      next: () => {
+        this.repairing.update(state => ({ ...state, [ch.id]: false }))
+        this.health.update(state => {
+          const { [ch.id]: _, ...rest } = state
+          return rest
+        })
+        this.updateStatus(ch.id, 'connecting')
+        this.qrModalChannelId.set(ch.id)
+        this.qrModalChannelName.set(ch.name)
+        this.qrModalImage.set(null)
+        this.qrModalError.set(null)
+        this.qrModalLoading.set(true)
+        this.qrModalOpen.set(true)
+      },
+      error: () => this.repairing.update(state => ({ ...state, [ch.id]: false }))
     })
   }
 

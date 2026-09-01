@@ -54,6 +54,28 @@
         <div class="ch-id">{{ ch.identifier }}</div>
         <div class="ch-branch">{{ ch.branch_name }}</div>
 
+        @if (healthErrors()[ch.id]; as error) {
+          <div class="health-result error">
+            <div class="health-title">
+              <span class="material-symbols-rounded">error</span>
+              No se pudo diagnosticar
+            </div>
+            <div class="health-issue">{{ error }}</div>
+          </div>
+        }
+
+        @if (health()[ch.id]; as result) {
+          <div class="health-result" [class.healthy]="result.healthy" [class.warning]="!result.healthy">
+            <div class="health-title">
+              <span class="material-symbols-rounded">{{ result.healthy ? 'verified' : 'warning' }}</span>
+              {{ result.healthy ? 'Conexión saludable' : 'Requiere atención' }}
+            </div>
+            @for (issue of result.issues; track issue) {
+              <div class="health-issue">{{ issue }}</div>
+            }
+          </div>
+        }
+
         <div class="card-actions">
           @if (ch.type === 'whatsapp') {
             <button 
@@ -63,9 +85,18 @@
               <span class="material-symbols-rounded">qr_code</span> 
               {{ qrs()[ch.id] ? 'Ver QR' : 'Generar QR' }}
             </button>
-            <button class="btn btn-ghost btn-sm" (click)="reconnect(ch)" title="Reconectar">
-              <span class="material-symbols-rounded">refresh</span>
+            <button class="btn btn-ghost btn-sm" (click)="diagnose(ch)" [disabled]="checkingHealth()[ch.id]" title="Diagnosticar conexión">
+              <span class="material-symbols-rounded">monitor_heart</span>
+              {{ checkingHealth()[ch.id] ? 'Revisando...' : 'Diagnosticar' }}
             </button>
+            @if (health()[ch.id]; as result) {
+              @if (result.needs_repair) {
+                <button class="btn btn-warning btn-sm" (click)="repair(ch)" [disabled]="repairing()[ch.id]" title="Borrar y regenerar la sesión">
+                  <span class="material-symbols-rounded">build</span>
+                  {{ repairing()[ch.id] ? 'Reparando...' : 'Reparar conexión' }}
+                </button>
+              }
+            }
           }
           <button class="btn btn-ghost btn-sm" (click)="edit(ch)" title="Editar">
             <span class="material-symbols-rounded">edit</span>

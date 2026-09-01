@@ -93,6 +93,8 @@ export class ApiService {
   deleteChannel(id: number) { return this.http.delete<any>(`${this.api}/channels/${id}`) }
   reconnectChannel(id: number) { return this.http.post<any>(`${this.api}/channels/${id}/reconnect`, {}) }
   getQr(id: number) { return this.http.get<any>(`${this.api}/channels/${id}/qr`) }
+  getChannelHealth(id: number) { return this.http.get<any>(`${this.api}/channels/${id}/health`) }
+  repairChannel(id: number) { return this.http.post<any>(`${this.api}/channels/${id}/repair`, { confirm: true }) }
 
   // ── Quick Replies ─────────────────────────────────────
   getQuickReplies(branch_id?: number) {

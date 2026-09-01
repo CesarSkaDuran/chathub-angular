@@ -97,10 +97,23 @@
                 </div>
               }
             } @else if (msg.type === 'document') {
-              <div class="msg-media">
-                <span class="material-symbols-rounded">description</span>
-                <span>{{ msg.body || 'Documento' }}</span>
-              </div>
+              @if (msg.media_url) {
+                <div class="msg-media-wrap document-wrap">
+                  <a class="document-card" [href]="msg.media_url" target="_blank" rel="noopener" download>
+                    <span class="material-symbols-rounded">description</span>
+                    <span class="document-name">{{ msg.body || 'Documento' }}</span>
+                    <span class="material-symbols-rounded document-download">download</span>
+                  </a>
+                  <button class="msg-delete" (click)="deleteMedia(msg)" title="Eliminar archivo">
+                    <span class="material-symbols-rounded">delete</span>
+                  </button>
+                </div>
+              } @else {
+                <div class="msg-media">
+                  <span class="material-symbols-rounded">description</span>
+                  <span>{{ msg.body || 'Documento' }}</span>
+                </div>
+              }
             } @else if (msg.type === 'video') {
               <div class="msg-media">
                 <span class="material-symbols-rounded">videocam</span>
@@ -162,6 +175,7 @@
       } @else {
         <div class="input-row">
           <input #imageInput type="file" accept="image/*" hidden (change)="onFileSelected($event)" />
+          <input #documentInput type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden (change)="onFileSelected($event)" />
 
           <div class="emoji-trigger-wrap">
             <button class="attach-btn emoji-trigger-btn" [class.active]="showEmojiPicker()" [disabled]="isRecording()"
@@ -205,6 +219,10 @@
           <button class="attach-btn" [disabled]="uploadingMedia() || isRecording()"
             (click)="triggerFileInput(imageInput)" title="Enviar imagen">
             <span class="material-symbols-rounded">image</span>
+          </button>
+          <button class="attach-btn" [disabled]="uploadingMedia() || isRecording()"
+            (click)="triggerFileInput(documentInput)" title="Enviar documento">
+            <span class="material-symbols-rounded">attach_file</span>
           </button>
 
           @if (isRecording()) {
